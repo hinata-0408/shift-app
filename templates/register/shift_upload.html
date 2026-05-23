@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}シフト取込 - レジシフト{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    
+    .upload-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .upload-card {
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-zone {
+        border: 2px dashed var(--gray-300);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-zone:hover {
+        border-color: var(--primary);
+        background: var(--gray-50);
+    }
+    
+    .upload-zone.dragover {
+        border-color: var(--primary);
+        background: #dbeafe;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-text {
+        color: var(--gray-600);
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-hint {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .selected-file {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: #dbeafe;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .selected-file-name {
+        flex: 1;
+        font-weight: 500;
+    }
+    
+    .selected-file-remove {
+        color: var(--danger);
+        cursor: pointer;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .result-card {
+        background: #dcfce7;
+        border: 1px solid #86efac;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .result-title {
+        font-weight: 700;
+        color: #166534;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .result-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+    }
+    
+    @media (max-width: 500px) {
+        .result-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .result-stat {
+        background: white;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+        text-align: center;
+    }
+    
+    .result-stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+    
+    .result-stat-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+    
+    .error-card {
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        color: #991b1b;
+        margin-bottom: 1rem;
+    }
+    
+    .warning-list {
+        margin-top: 1rem;
+        padding: 0.75rem;
+        background: #fef3c7;
+        border-radius: 0.5rem;
+    }
+    
+    .warning-title {
+        font-weight: 600;
+        color: #92400e;
+        margin-bottom: 0.5rem;
+    }
+    
+    .warning-items {
+        font-size: 0.8125rem;
+        color: #78350f;
+    }
+    
+    .help-section {
+        background: var(--gray-50);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .help-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .help-content {
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+    }
+    
+    .help-content ul {
+        margin: 0.5rem 0;
+        padding-left: 1.25rem;
+    }
+    
+    .help-content li {
+        margin: 0.25rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="page-header">
+        <h1 class="page-title">📥 シフト取込</h1>
+        <a href="{% url 'staff_list' %}" class="btn btn-outline btn-sm">← 戻る</a>
+    </div>
+    
+    {% if result %}
+    <div class="result-card">
+        <div class="result-title">✅ インポート完了</div>
+        <div class="result-stats">
+            <div class="result-stat">
+                <div class="result-stat-value">{{ result.dates }}</div>
+                <div class="result-stat-label">日数</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value">{{ result.imported }}</div>
+                <div class="result-stat-label">シフト件数</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value">{{ result.staff_created }}</div>
+                <div class="result-stat-label">新規スタッフ</div>
+            </div>
+            <div class="result-stat">
+                <div class="result-stat-value">{{ result.staff_updated }}</div>
+                <div class="result-stat-label">既存スタッフ</div>
+            </div>
+        </div>
+        
+        {% if result.staff_created > 0 %}
+        <div class="warning-list">
+            <div class="warning-title">💡 新規スタッフはレベル0で作成されました</div>
+            <div class="warning-items">
+                スタッフ一覧からレベルを設定してください
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% if error %}
+    <div class="error-card">
+        ❌ {{ error }}
+    </div>
+    {% endif %}
+    
+    <div class="upload-card">
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            
+            <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">クリックまたはドラッグ＆ドロップ</div>
+                <div class="upload-hint">Excelファイル (.xlsx) を選択</div>
+            </div>
+            
+            <input type="file" name="shift_file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+            
+            <div id="selectedFile" class="selected-file" style="display: none;">
+                <span>📄</span>
+                <span class="selected-file-name" id="fileName"></span>
+                <span class="selected-file-remove" onclick="clearFile(event)">✕</span>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">年</label>
+                    <select name="year" class="form-input">
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}年</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">月</label>
+                    <select name="month" class="form-input">
+                        {% for m in months %}
+                        <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }}月</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn" disabled>
+                📥 シフトを取り込む
+            </button>
+        </form>
+    </div>
+    
+    <div class="help-section">
+        <div class="help-title">💡 使い方</div>
+        <div class="help-content">
+            <ul>
+                <li>全体シフトのExcelファイル(.xlsx)をアップロードしてください</li>
+                <li>「3）入力用」シートからシフトデータを読み取ります</li>
+                <li><strong>スタッフは自動作成されます</strong>（既存スタッフはレベルを維持）</li>
+                <li>新規スタッフはレベル0で作成されるので、後からレベルを設定してください</li>
+                <li>既存のシフトデータは上書きされます</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="help-section">
+        <div class="help-title">📋 対応シフトコード</div>
+        <div class="help-content">
+            <ul>
+                <li><strong>早</strong>: 9:30〜19:00</li>
+                <li><strong>遅</strong>: 11:00〜20:30</li>
+                <li><strong>中1</strong>: 10:00〜19:30</li>
+                <li><strong>流早</strong>: 9:15〜18:45</li>
+                <li><strong>早XX</strong>: 9:30〜XX:00（例: 早17 = 9:30〜17:00）</li>
+                <li><strong>XX遅</strong>: XX:00〜20:30（例: 15遅 = 15:00〜20:30）</li>
+                <li><strong>XXYY</strong>: XX:00〜YY:00（例: 1119 = 11:00〜19:00）</li>
+                <li><strong>XX3YY</strong>: XX:30〜YY:00（例: 10319 = 10:30〜19:00）</li>
+                <li><strong>XXYY3</strong>: XX:00〜YY:30（例: 12193 = 12:00〜19:30）</li>
+                <li><strong>XX3YY3</strong>: XX:30〜YY:30（例: 103193 = 10:30〜19:30）</li>
+                <li><strong>会・応</strong>: 出勤表示あり、レジシフトは休み</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const selectedFile = document.getElementById('selectedFile');
+    const fileName = document.getElementById('fileName');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // ファイル選択時
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            showFile(this.files[0]);
+        }
+    });
+    
+    // ドラッグ&ドロップ
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', function() {
+        this.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            showFile(files[0]);
+        }
+    });
+    
+    function showFile(file) {
+        fileName.textContent = file.name;
+        selectedFile.style.display = 'flex';
+        dropZone.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+    
+    function clearFile(e) {
+        e.stopPropagation();
+        fileInput.value = '';
+        selectedFile.style.display = 'none';
+        dropZone.style.display = 'block';
+        submitBtn.disabled = true;
+    }
+    
+    // フォーム送信時
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '処理中...';
+    });
+</script>
+{% endblock %}

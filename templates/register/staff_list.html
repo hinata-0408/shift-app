@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block title %}スタッフ管理 - レジシフト{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+    }
+
+    .page-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .level-legend {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+        padding: 0.75rem 1rem;
+        background: white;
+        border-radius: 0.5rem;
+        border: 1px solid var(--gray-200);
+        font-size: 0.8125rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .dept-section { margin-bottom: 1.25rem; }
+
+    .dept-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 0.875rem;
+        background: var(--gray-100);
+        border-radius: 0.375rem;
+        margin-bottom: 0.625rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .dept-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .dept-count { font-size: 0.75rem; color: var(--gray-400); font-weight: normal; }
+
+    .dept-select-all {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: var(--action);
+        cursor: pointer;
+        font-weight: normal;
+    }
+
+    .dept-select-all:hover { text-decoration: underline; }
+
+    .staff-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .staff-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        transition: border-color 0.1s;
+        cursor: pointer;
+    }
+
+    .staff-card:hover { border-color: var(--action); }
+
+    .staff-card.selected {
+        border-color: var(--action);
+        background: #eff6ff;
+    }
+
+    .staff-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--action);
+        flex-shrink: 0;
+    }
+
+    .staff-avatar {
+        width: 36px;
+        height: 36px;
+        background: var(--gray-100);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        flex-shrink: 0;
+        cursor: pointer;
+    }
+
+    .staff-info { flex: 1; min-width: 0; cursor: pointer; }
+
+    .staff-name {
+        font-weight: 600;
+        font-size: 0.9375rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .staff-dept { font-size: 0.75rem; color: var(--gray-400); }
+
+    .empty-dept { padding: 1.5rem; text-align: center; color: var(--gray-400); font-size: 0.875rem; }
+
+    /* 一括操作バー */
+    .bulk-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid var(--gray-200);
+        padding: 0.875rem 1rem;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
+        z-index: 100;
+    }
+
+    .bulk-bar.show { display: flex; }
+    .bulk-bar .selected-count { font-weight: 600; color: var(--action); font-size: 0.875rem; }
+
+    .bulk-bar select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--gray-300);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background: white;
+    }
+
+    .page-content { padding-bottom: 80px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header">
+        <h1 class="page-title">スタッフ一覧</h1>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{% url 'shift_upload' %}" class="btn btn-outline btn-sm">シフト取込</a>
+            <a href="{% url 'staff_add' %}" class="btn btn-primary btn-sm">スタッフ追加</a>
+        </div>
+    </div>
+
+    <div class="level-legend">
+        <span style="color: var(--gray-500); font-weight: 600; margin-right: 0.25rem;">レベル：</span>
+        <div class="legend-item"><span class="level-badge level-1">Lv1</span> 最優先</div>
+        <div class="legend-item"><span class="level-badge level-2">Lv2</span> 通常</div>
+        <div class="legend-item"><span class="level-badge level-3">Lv3</span> なるべく避ける</div>
+        <div class="legend-item"><span class="level-badge level-4">Lv4</span> 原則避ける</div>
+        <div class="legend-item"><span class="level-badge level-0">Lv0</span> 戦力外</div>
+    </div>
+
+    {% for dept, staffs in staffs_by_dept.items %}
+    <div class="dept-section">
+        <div class="dept-header">
+            <span class="dept-dot" style="background:
+                {% if dept == '店長' %}var(--state-manager)
+                {% elif dept == '季節' %}var(--state-manual)
+                {% elif dept == '家電' %}var(--state-auto)
+                {% elif dept == '情報' %}var(--action)
+                {% elif dept == '通信' %}#0891b2
+                {% else %}var(--gray-400){% endif %};"></span>
+            {{ dept }}
+            <span class="dept-count">（{{ staffs|length }}名）</span>
+            {% if staffs %}
+            <span class="dept-select-all" data-dept="{{ dept }}">全選択</span>
+            {% endif %}
+        </div>
+
+        {% if staffs %}
+        <div class="staff-grid">
+            {% for staff in staffs %}
+            <div class="staff-card" data-staff-id="{{ staff.id }}" data-dept="{{ dept }}">
+                <input type="checkbox" class="staff-checkbox" data-staff-id="{{ staff.id }}">
+                <div class="staff-avatar staff-link" data-href="{% url 'staff_edit' staff.id %}">
+                    {{ staff.name|slice:":1" }}
+                </div>
+                <div class="staff-info staff-link" data-href="{% url 'staff_edit' staff.id %}">
+                    <div class="staff-name">{{ staff.name }}</div>
+                    <div class="staff-dept">{{ staff.department }}</div>
+                </div>
+                <span class="level-badge level-{{ staff.level }}">Lv{{ staff.level }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-dept">スタッフが登録されていません</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 一括操作バー -->
+<div class="bulk-bar" id="bulkActionBar">
+    <span class="selected-count"><span id="selectedCount">0</span>名選択中</span>
+    <select id="bulkLevelSelect">
+        <option value="">レベルを選択</option>
+        <option value="0">Lv0 - 戦力外</option>
+        <option value="1">Lv1 - 最優先</option>
+        <option value="2">Lv2 - 通常</option>
+        <option value="3">Lv3 - なるべく避ける</option>
+        <option value="4">Lv4 - 原則避ける</option>
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="applyBulkLevel()">一括変更</button>
+    <button class="btn btn-outline btn-sm" onclick="clearSelection()">選択解除</button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const selectedStaffs = new Set();
+
+    document.querySelectorAll('.staff-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('click', e => e.stopPropagation());
+        checkbox.addEventListener('change', function() {
+            const staffId = this.dataset.staffId;
+            const card = this.closest('.staff-card');
+            if (this.checked) {
+                selectedStaffs.add(staffId);
+                card.classList.add('selected');
+            } else {
+                selectedStaffs.delete(staffId);
+                card.classList.remove('selected');
+            }
+            updateBulkBar();
+        });
+    });
+
+    document.querySelectorAll('.staff-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.classList.contains('staff-checkbox')) return;
+            if (e.target.closest('.staff-link')) {
+                const href = e.target.closest('.staff-link').dataset.href;
+                if (href) { window.location.href = href; return; }
+            }
+            const checkbox = this.querySelector('.staff-checkbox');
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        });
+    });
+
+    document.querySelectorAll('.dept-select-all').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const dept = this.dataset.dept;
+            const cards = document.querySelectorAll(`.staff-card[data-dept="${dept}"]`);
+            const allSelected = [...cards].every(c => c.querySelector('.staff-checkbox').checked);
+            cards.forEach(card => {
+                const checkbox = card.querySelector('.staff-checkbox');
+                checkbox.checked = !allSelected;
+                checkbox.dispatchEvent(new Event('change'));
+            });
+            this.textContent = allSelected ? '全選択' : '選択解除';
+        });
+    });
+
+    function updateBulkBar() {
+        const bar = document.getElementById('bulkActionBar');
+        document.getElementById('selectedCount').textContent = selectedStaffs.size;
+        bar.classList.toggle('show', selectedStaffs.size > 0);
+    }
+
+    function clearSelection() {
+        document.querySelectorAll('.staff-checkbox').forEach(c => { c.checked = false; });
+        document.querySelectorAll('.staff-card').forEach(c => c.classList.remove('selected'));
+        selectedStaffs.clear();
+        updateBulkBar();
+        document.querySelectorAll('.dept-select-all').forEach(b => b.textContent = '全選択');
+    }
+
+    async function applyBulkLevel() {
+        const level = document.getElementById('bulkLevelSelect').value;
+        if (!level) { showToast('レベルを選択してください', 'error'); return; }
+        if (selectedStaffs.size === 0) { showToast('スタッフを選択してください', 'error'); return; }
+
+        const levelNames = { '0': 'Lv0', '1': 'Lv1', '2': 'Lv2', '3': 'Lv3', '4': 'Lv4' };
+        if (!confirm(`${selectedStaffs.size}名のレベルを「${levelNames[level]}」に変更しますか？`)) return;
+
+        try {
+            const res = await fetch('/api/staff/bulk-level/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ staff_ids: Array.from(selectedStaffs), level: parseInt(level) }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`${data.updated}名のレベルを変更しました`);
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast(data.error || 'エラーが発生しました', 'error');
+            }
+        } catch (e) {
+            showToast('エラーが発生しました', 'error');
+        }
+    }
+</script>
+{% endblock %}

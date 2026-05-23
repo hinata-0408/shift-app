@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}スタッフ追加 - レジシフト{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .form-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid var(--gray-200);
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .form-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .alert {
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .alert-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="form-title">スタッフ追加</h1>
+    
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    
+    <div class="form-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="name">名前 *</label>
+                <input type="text" name="name" id="name" class="form-input" required autofocus placeholder="例: 山田太郎">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="department">部門 *</label>
+                <select name="department" id="department" class="form-input">
+                    {% for value, label in departments %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="level">レベル *</label>
+                <select name="level" id="level" class="form-input">
+                    {% for value, label in levels %}
+                    <option value="{{ value }}" {% if value == 2 %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'staff_list' %}" class="btn btn-outline">キャンセル</a>
+                <button type="submit" class="btn btn-primary">追加する</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
